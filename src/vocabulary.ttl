@@ -1,0 +1,136 @@
+# The ikigai-vector vocabulary: the terms an index declaration and this module's answers carry
+# that no standard vocabulary already names. Published at its namespace once deployed.
+@prefix vector: <https://ikigai-rs.dev/ns/vector#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://ikigai-rs.dev/ns/vector> a owl:Ontology ;
+    rdfs:label "ikigai-vector vocabulary"@en ;
+    rdfs:comment "Terms for vector search served as ikigai resources: index declarations, index descriptions and nearest-passage answers that name passages and never carry their text."@en ;
+    owl:versionInfo "0.1.0" .
+
+vector:IndexDeclaration a rdfs:Class ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "index declaration"@en ;
+    rdfs:comment "The configuration an index is built from: its backend, embedding model and provider, the dimensions the model produces, and the bound on k. Named urn:vector:declaration:index:{n}."@en .
+
+vector:Index a rdfs:Class ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "index"@en ;
+    rdfs:comment "A vector index: a cache of its members' vectors, held by a backend and rebuilt from its declaration, member list and embeddings. Named urn:vector:index:name:{n}."@en .
+
+vector:NearestAnswer a rdfs:Class ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "nearest answer"@en ;
+    rdfs:comment "The passages of an index nearest to a query, by name, rank and score. It never carries passage text or the query."@en .
+
+vector:Hit a rdfs:Class ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "hit"@en ;
+    rdfs:comment "One passage in a nearest answer, with its rank and score."@en .
+
+vector:backend a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "backend"@en ;
+    rdfs:comment "The kind of backend that holds an index's vectors, such as flat (an exact in-process scan)."@en ;
+    rdfs:range xsd:string .
+
+vector:model a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "model"@en ;
+    rdfs:comment "The embedding model, as ikigai-llm installs it."@en ;
+    rdfs:range xsd:string .
+
+vector:provider a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "provider"@en ;
+    rdfs:comment "The embedding provider urn:llm:embed is asked to use. Without one, the host's configured default."@en ;
+    rdfs:range xsd:string .
+
+vector:dimensions a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "dimensions"@en ;
+    rdfs:comment "How many values each vector holds. A declaration states what the model is expected to produce, so a model that produces another number is refused when the index is built."@en ;
+    rdfs:range xsd:integer .
+
+vector:maxK a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "maximum k"@en ;
+    rdfs:comment "The largest k a nearest query on the index accepts; 50 when the declaration names none."@en ;
+    rdfs:range xsd:integer .
+
+vector:declaration a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "declaration"@en ;
+    rdfs:comment "The declaration an index was built from."@en ;
+    rdfs:domain vector:Index ;
+    rdfs:range vector:IndexDeclaration .
+
+vector:exact a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "exact"@en ;
+    rdfs:comment "Whether an index's answers are exact. An approximate backend says false."@en ;
+    rdfs:range xsd:boolean .
+
+vector:modelDigest a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "model digest"@en ;
+    rdfs:comment "The digest of the model the vectors were made with, as urn:llm:embed names it. Vectors from two digests are never compared."@en ;
+    rdfs:range xsd:string .
+
+vector:memberCount a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "member count"@en ;
+    rdfs:comment "How many passages an index holds."@en ;
+    rdfs:domain vector:Index ;
+    rdfs:range xsd:integer .
+
+vector:memberListDigest a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "member list digest"@en ;
+    rdfs:comment "sha256: followed by the SHA-256, in lowercase hex, of each member's name followed by a newline, in byte order: equal digests mean equal member lists."@en ;
+    rdfs:domain vector:Index ;
+    rdfs:range xsd:string .
+
+vector:index a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "index"@en ;
+    rdfs:comment "The index a nearest answer searched."@en ;
+    rdfs:domain vector:NearestAnswer ;
+    rdfs:range vector:Index .
+
+vector:hitCount a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "hit count"@en ;
+    rdfs:comment "How many passages a nearest answer lists."@en ;
+    rdfs:domain vector:NearestAnswer ;
+    rdfs:range xsd:integer .
+
+vector:hit a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "hit"@en ;
+    rdfs:comment "One passage a nearest answer lists."@en ;
+    rdfs:domain vector:NearestAnswer ;
+    rdfs:range vector:Hit .
+
+vector:rank a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "rank"@en ;
+    rdfs:comment "A hit's position in its answer, from 1: by rounded score descending, then passage name ascending."@en ;
+    rdfs:domain vector:Hit ;
+    rdfs:range xsd:integer .
+
+vector:passage a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "passage"@en ;
+    rdfs:comment "The name of a hit's passage. Reading what it holds takes the caller's own authority where it is served."@en ;
+    rdfs:domain vector:Hit .
+
+vector:score a rdf:Property ;
+    rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
+    rdfs:label "score"@en ;
+    rdfs:comment "A hit's cosine similarity to the query, of L2-normalized vectors, rounded to 6 decimal places."@en ;
+    rdfs:domain vector:Hit ;
+    rdfs:range xsd:decimal .

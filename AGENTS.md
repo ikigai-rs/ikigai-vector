@@ -1,7 +1,7 @@
 # Working in this repository
 
-`ikigai-vector` is an ikigai module, a scaffold today: vector search as resources, one
-contract with pluggable backends. These rules are for every agent and every person working
+`ikigai-vector` is an ikigai module: vector search as resources, one contract with pluggable
+backends. These rules are for every agent and every person working
 here. `CLAUDE.md` is a link to this file.
 
 - **The README is the contract.** Its resource map says which names exist and which are planned.
