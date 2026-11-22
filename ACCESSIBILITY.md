@@ -13,7 +13,7 @@ Adapted from the [ACCESSIBILITY.md template](https://github.com/mgifford/ACCESSI
 
 | Field | Value |
 |---|---|
-| Project | ikigai-vector: a library of ikigai endpoints (a scaffold: none is built yet) |
+| Project | ikigai-vector: a library of ikigai endpoints (vector search as resources) |
 | Published at | not published: a host links the crate and serves its endpoints |
 | Owner | the maintainers of this repository |
 | Report a barrier | [a GitHub issue](https://github.com/ikigai-rs/ikigai-vector/issues/new) |
@@ -34,16 +34,30 @@ of words, pinned exactly by tests, and this file says what has not been tested.
 
 ### In scope
 
-Nothing yet: the scaffold emits no output. These are planned (ledger #3890, `docs/design.md`),
-and each enters this file, with its test, in the pull request that builds it:
+Every sentence below is pinned by its words in `tests/faces.rs` (refusals by authority in
+`tests/authority.rs`, the backend's answers in `tests/backend.rs`):
 
 - **The nearest face** (`urn:vector:nearest:index:{n}`, `text/plain`, the default): a header
-  line naming the count in a number and a word that agree, whether the answer is exact, and the
-  model, then one line per passage: its rank, its name and its score.
-- **The index description** (`urn:vector:index:name:{n}`, `text/plain`): one fact per line (the
-  backend, the model and its digest, the dimensions, the member count, exact or not).
-- **Every refusal sentence**: a `k` out of range names `k` and the bound; a digest mismatch
-  names both digests. A query's text is never quoted back in a refusal.
+  line with the count in a number and a word that agree (`1 passage`, `2 passages`), `exact` or
+  `approximate`, and the model and its digest; then one line per passage: its rank, its name and
+  its score (`  1. urn:…  score 0.812345`). An index with no vectors says so in words. The
+  `application/json` face carries the same rank, name and score as data.
+- **The index description** (`urn:vector:index:name:{n}`, `text/plain`): one fact per line: the
+  index, the backend, exact or approximate, the model, the model digest (or a sentence saying
+  there is none yet), the dimensions, the member count, the member-list digest and the bound on
+  `k`, each count in a number and a word that agree.
+- **The declaration** (`urn:vector:declaration:index:{n}`, `text/plain`): one fact per line: the
+  backend, the model, the provider (or "the host's default"), the dimensions and the bound on `k`.
+- **Member and rebuild answers**: one line each, naming the passage and the index and the member
+  count (`added … to index a: 2 members`, `removed …`, `… is not a member of index a: …`,
+  `rebuilt index a: …`); `exists` answers `true` or `false`.
+- **Every refusal sentence**: `k` out of range names `k` and the bound; an empty query names
+  `text`; a digest mismatch names both digests and says to rebuild; a changed declaration names
+  both models and says to rebuild; a model that answers other dimensions names both counts; an
+  index that is not built or not declared, and a passage that is not there, say so and say what
+  to do; a refusal of authority names the scope it takes; an unknown face lists the faces there
+  are. **A query's text, and a passage's text, are never quoted back in a refusal**
+  (`tests/backend.rs` and `tests/faces.rs` check it).
 
 ### Not ours to fix, still ours to report
 
@@ -63,16 +77,20 @@ and each enters this file, with its test, in the pull request that builds it:
 
 ## Conformance status
 
-**Evaluation in progress** against WCAG 2.2 AA. There is no output yet, so there is no evidence
-yet. Do not infer a conformance claim from a green build or from this file.
+**Evaluation in progress** against WCAG 2.2 AA. The evidence below is what automated tests show
+about the words of each answer; no person and no assistive technology has read them yet. Do not
+infer a conformance claim from a green build or from this file.
 
 ## Evidence
 
 | Check | Result | Evidence | What it covers | What it does not cover |
 |---|---|---|---|---|
-| The planned faces' exact lines | Blocked | not built yet (ledger #3890) | | |
+| The nearest faces' exact lines (text, JSON) and statements (Turtle) | Pass | `tests/faces.rs` `the_nearest_faces`, `an_empty_index_answers_no_passages`; `tests/backend.rs`; rustc 1.100.0 | every line and its words; counts that agree | how a client lays them out |
+| The index description and declaration faces | Pass | `tests/faces.rs` `the_index_and_declaration_faces`, `an_empty_index_answers_no_passages`; rustc 1.100.0 | every line and its words | |
+| Member, rebuild and `exists` answers | Pass | `tests/faces.rs` `the_member_answers`; rustc 1.100.0 | every line and its words | |
+| Every refusal sentence names its subject and what to do | Pass | `tests/faces.rs` `every_refusal_sentence`, `tests/authority.rs`; rustc 1.100.0 | each refusal's words; that no query or passage text is quoted | how a host displays core's error kinds |
 | Automated WCAG checker (for example axe) | Blocked | this crate emits no HTML, so there is no page here to run one on | | |
-| Screen reader reading the faces and the refusals | Blocked | no output exists yet, and no screen reader has been used | | |
+| Screen reader reading the faces and the refusals | Blocked | no screen reader has been used on this output | | everything a listener hears |
 
 **No screen reader, screen magnifier, speech-input or switch-access software has been used to
 test this repository, so every check that needs one is Blocked.**
@@ -81,7 +99,8 @@ test this repository, so every check that needs one is Blocked.**
 
 | Barrier or gap | Where | Impact | Workaround |
 |---|---|---|---|
-| Passage names are long IRIs | the planned nearest face | long to listen to | the rank comes first on each line, so a listener can skip by rank |
+| Passage names are long IRIs | the nearest face | long to listen to | the rank comes first on each line, so a listener can skip by rank |
+| Digests are long hexadecimal strings | the nearest header, the index description | long to listen to and hard to compare by ear | each sits at the end of its line, so a listener can stop before it |
 | Every sentence is English only | every answer | | none |
 
 No list like this is complete. Please report what you find.
@@ -159,6 +178,7 @@ and before any conformance claim.
 | Date | Change | Evidence |
 |---|---|---|
 | 2026-11-21 | First version, for the scaffold: no output yet; the planned faces and their rules | the scaffold commit |
+| 2026-11-21 | The contract built (ledger #3890): the nearest, index, declaration, member and embedding faces and every refusal, each pinned by a test | `tests/faces.rs`, `tests/authority.rs`, `tests/backend.rs` |
 
 ## References
 

@@ -9,7 +9,41 @@ repository = "https://github.com/ikigai-rs/ikigai-vector"
 readme = "README.md"
 keywords = ["ikigai", "roc", "vector", "search", "module"]
 categories = ["wasm", "algorithms"]
-# Not published until the contract is built (ledger #3890); publishing is the maintainer's.
+# Not published yet; publishing is the maintainer's.
 publish = false
 
 [dependencies]
+# The released kernel, consumed from crates.io, so a host links exactly one `ikigai-core`.
+# The TRUE floor is 0.4.0: refusals are built as `Error::Denied(Denial)` (core 0.4.0, ledger
+# #3840), and `Invocation::depends_on` on a miss is older (core 0.1.93). 0.4.1 is stated so a
+# fresh resolve and CI's cached index agree on one core. ⚠ Under 0.x a caret is a range:
+# `"0.4.1"` is `<0.5.0`.
+ikigai-core = "0.4.1"
+# Endpoints read through the kernel, whose `invoke` is `async_trait`.
+async-trait = "0.1"
+# The embedding answer (`urn:llm:embed`'s JSON face) is parsed, and the nearest JSON face
+# written, by the JSON library core already links; nothing is written by hand. 1.0 is the
+# floor of everything used here (`Value`, `json!`, `to_vec`).
+serde_json = "1"
+# `{h}` in an embedding's name is the SHA-256 of the passage text (design, section 1).
+# Core's digests are BLAKE3, so the standard needs this crate; 0.10.9 is the version the
+# ecosystem's locks already hold. ⚠ `"0.10.9"` is `<0.11.0`.
+sha2 = "0.10.9"
+# An index declaration is Turtle: parsed (to refuse a malformed or blank-node declaration)
+# and the Turtle faces are written, by the RDF library, never by hand. The pair the
+# ecosystem already links; oxttl pins oxrdf exactly (`=0.3.5` for oxttl 0.2.5), so these
+# floors move together. ⚠ `"0.3.5"` is `<0.4.0` and `"0.2.5"` is `<0.3.0`.
+oxrdf = "0.3.5"
+oxttl = "0.2.5"
+
+# oxrdf draws on `rand` for blank-node ids; on wasm32-unknown-unknown its entropy comes from
+# the JS host (ikigai-knowledge and ikigai-inquiry do the same). This crate never mints a
+# blank node.
+[target.'cfg(target_family = "wasm")'.dependencies]
+getrandom = { version = "0.3", features = ["wasm_js"] }
+
+[dev-dependencies]
+futures = "0.3"
+# The module recipe as one test (`tests/conformance.rs`). 0.15.0 is the conformance on
+# core 0.4. ⚠ `"0.15.0"` is `<0.16.0`.
+ikigai-conformance = "0.15.0"
