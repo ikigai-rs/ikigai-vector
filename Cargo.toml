@@ -2,6 +2,9 @@
 name = "ikigai-vector"
 version = "0.1.0"
 edition = "2021"
+# Measured (ledger #4176): oxrdf 0.3.5 and oxttl 0.2.5 (and the oxigraph crates beside them)
+# require 1.87, so rustc 1.86 refuses the build; clippy -D warnings and the tests pass on 1.87.
+rust-version = "1.87"
 license = "MIT OR Apache-2.0"
 description = "Vector search as ikigai resources: one contract (index declaration, index, member, embedding, nearest), pluggable backends, answers that name passages and never carry their text."
 authors = ["Brian Sletten <brian.sletten@gmail.com>"]
