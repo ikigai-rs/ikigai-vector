@@ -111,10 +111,9 @@ impl Declaration {
         let number = |local: &str, max: u64| -> Result<Option<u64>> {
             match value(local)? {
                 None => Ok(None),
-                Some(l) => l
-                    .value()
-                    .parse::<u64>()
-                    .ok()
+                Some(l) => Some(l)
+                    .filter(|l| is_integer_datatype(l.datatype().as_str()))
+                    .and_then(|l| l.value().parse::<u64>().ok())
                     .filter(|v| (1..=max).contains(v))
                     .map(Some)
                     .ok_or_else(|| {
@@ -170,11 +169,39 @@ impl Declaration {
     }
 }
 
+/// Whether `datatype` is `xsd:integer` or one of the XSD types derived from it that can hold
+/// a positive value: what a whole-number property of a declaration takes.
+fn is_integer_datatype(datatype: &str) -> bool {
+    datatype
+        .strip_prefix("http://www.w3.org/2001/XMLSchema#")
+        .is_some_and(|local| {
+            matches!(
+                local,
+                "integer"
+                    | "nonNegativeInteger"
+                    | "positiveInteger"
+                    | "long"
+                    | "int"
+                    | "short"
+                    | "byte"
+                    | "unsignedLong"
+                    | "unsignedInt"
+                    | "unsignedShort"
+                    | "unsignedByte"
+            )
+        })
+}
+
 /// A model name: what an embedding's name carries in `{m}`.
+///
+/// The embedding template matches `{m}` up to the leftmost `:hash:`, so a name containing it,
+/// or ending in `:hash` (which meets the template's own `:hash:`), would be read back as
+/// another model.
 pub(crate) fn check_model(m: &str) -> std::result::Result<(), String> {
     let ok = !m.is_empty()
         && m.len() <= 128
         && !m.contains(":hash:")
+        && !m.ends_with(":hash")
         && m.chars()
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | ':' | '/'));
     if ok {
@@ -182,7 +209,7 @@ pub(crate) fn check_model(m: &str) -> std::result::Result<(), String> {
     } else {
         Err(format!(
             "`{m}` is not a model name: use 1 to 128 letters, digits, `-`, `_`, `.`, `:` and `/`, \
-             never `:hash:`"
+             never containing `:hash:` or ending in `:hash`"
         ))
     }
 }
@@ -298,5 +325,49 @@ impl Endpoint for DeclarationEndpoint {
             )
             .output(TEXT)
             .output(TURTLE)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn declared(model: &str, dimensions: &str) -> Result<Declaration> {
+        Declaration::parse(
+            "docs",
+            format!(
+                "@prefix vector: <https://ikigai-rs.dev/ns/vector#> .\n\
+                 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\
+                 <> vector:model \"{model}\" ; vector:dimensions {dimensions} .\n"
+            )
+            .as_bytes(),
+        )
+    }
+
+    /// The embedding template matches `{m}` up to the leftmost `:hash:`, so a model ending in
+    /// `:hash` would be read back as a shorter model and a hash beginning `hash:`: every
+    /// member of such an index was refused, with a hash it never wrote.
+    #[test]
+    fn a_model_ending_in_hash_is_refused() {
+        assert!(declared("x:hash", "4").is_err());
+        assert_eq!(
+            check_model("x:hash").unwrap_err(),
+            "`x:hash` is not a model name: use 1 to 128 letters, digits, `-`, `_`, `.`, `:` and \
+             `/`, never containing `:hash:` or ending in `:hash`"
+        );
+        assert!(check_model("hash:x").is_ok());
+        assert!(check_model("x:hashed").is_ok());
+        assert!(declared("embeddinggemma:300m", "4").is_ok());
+    }
+
+    /// A number is a typed integer literal: a string or a boolean that happens to spell
+    /// digits is a malformed value, and refused.
+    #[test]
+    fn a_number_that_is_not_an_integer_literal_is_refused() {
+        assert!(declared("m", "4").is_ok());
+        assert!(declared("m", "\"4\"^^xsd:positiveInteger").is_ok());
+        assert!(declared("m", "\"4\"").is_err());
+        assert!(declared("m", "\"4\"^^xsd:boolean").is_err());
+        assert!(declared("m", "\"4\"@en").is_err());
     }
 }

@@ -9,7 +9,7 @@
 <https://ikigai-rs.dev/ns/vector> a owl:Ontology ;
     rdfs:label "ikigai-vector vocabulary"@en ;
     rdfs:comment "Terms for vector search served as ikigai resources: index declarations, index descriptions and nearest-passage answers that name passages and never carry their text."@en ;
-    owl:versionInfo "0.1.0" .
+    owl:versionInfo "0.1.1" .
 
 vector:IndexDeclaration a rdfs:Class ;
     rdfs:isDefinedBy <https://ikigai-rs.dev/ns/vector> ;
