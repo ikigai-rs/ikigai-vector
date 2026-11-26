@@ -183,3 +183,76 @@ pub fn conformance(kind: &str, factory: BackendFactory) {
     let texts: Vec<String> = host.embedded.lock().unwrap().clone();
     assert!(texts.iter().all(|t| !t.is_empty()));
 }
+
+#[test]
+fn deleting_the_last_member_leaves_the_same_empty_index_as_rebuilding() {
+    let host = Host::new();
+    let (w, r) = (writer("a"), reader("a"));
+    host.put_passage("p1", "vec:1,0,0,0");
+    host.add("a", "p1", &w).unwrap();
+    host.nearest("a", "vec:1,0,0,0", "1", None, &r).unwrap();
+    host.remove("a", "p1", &w).unwrap();
+
+    assert_eq!(
+        host.nearest("a", "vec:1,0,0,0", "1", None, &r).unwrap(),
+        "0 passages, exact, model m: the index holds no vectors\n"
+    );
+
+    host.set_digest(OTHER_DIGEST);
+    host.add("a", "p1", &w).unwrap();
+    let answer = host.nearest("a", "vec:1,0,0,0", "1", None, &r).unwrap();
+    assert!(answer.contains(OTHER_DIGEST), "{answer}");
+}
+
+#[test]
+fn nearest_uses_cosine_and_allows_k_above_the_member_count() {
+    let host = Host::new();
+    let (w, r) = (writer("a"), reader("a"));
+    for (id, vector) in [
+        ("aligned", "vec:1e38,0,0,0"),
+        ("opposite", "vec:-1e38,0,0,0"),
+        ("diagonal", "vec:3,4,0,0"),
+    ] {
+        host.put_passage(id, vector);
+        host.add("a", id, &w).unwrap();
+    }
+    assert_eq!(
+        host.nearest("a", "vec:1e-40,0,0,0", "5", None, &r).unwrap(),
+        concat!(
+            "3 passages, exact, model m digest sha256:aaaa1111\n",
+            "  1. urn:example:passage:aligned  score 1.000000\n",
+            "  2. urn:example:passage:diagonal  score 0.600000\n",
+            "  3. urn:example:passage:opposite  score -1.000000\n"
+        )
+    );
+}
+
+#[test]
+fn nearest_and_add_refuse_wrong_dimensions_and_invalid_directions() {
+    let host = Host::new();
+    let (w, r) = (writer("a"), reader("a"));
+    host.put_passage("p1", "vec:1,0,0,0");
+    host.add("a", "p1", &w).unwrap();
+
+    host.put_passage("invalid", "vec:1,0");
+    assert!(matches!(
+        host.add("a", "invalid", &w),
+        Err(Error::Conflict(_))
+    ));
+    assert!(matches!(
+        host.nearest("a", "vec:1,0", "1", None, &r),
+        Err(Error::Conflict(_))
+    ));
+    for vector in ["vec:0,0,0,0", "vec:NaN,0,0,0", "vec:inf,0,0,0"] {
+        host.put_passage("invalid", vector);
+        assert!(matches!(
+            host.add("a", "invalid", &w),
+            Err(Error::Endpoint(_))
+        ));
+        assert!(matches!(
+            host.nearest("a", vector, "1", None, &r),
+            Err(Error::Endpoint(_))
+        ));
+    }
+    assert_eq!(host.vectors.held("a").unwrap().len(), 1);
+}

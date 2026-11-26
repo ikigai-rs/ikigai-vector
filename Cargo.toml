@@ -1,6 +1,6 @@
 [package]
 name = "ikigai-vector"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 # Measured (ledger #4176): oxrdf 0.3.5 and oxttl 0.2.5 (and the oxigraph crates beside them)
 # require 1.87, so rustc 1.86 refuses the build; clippy -D warnings and the tests pass on 1.87.

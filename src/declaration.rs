@@ -11,7 +11,7 @@ use oxttl::TurtleParser;
 use crate::{
     count, declaration_file, face, index_binding, iri, named, read_declaration_scope, require,
     term, turtle, DECLARATION_ID, DECLARATION_PREFIX, FILE_TEMPLATE, FLAT, FS_READ,
-    READ_DECLARATION, TEXT, TURTLE, VOCABULARY_NAMESPACE, XSD_STRING,
+    READ_DECLARATION, TEXT, TURTLE, VOCABULARY_NAMESPACE, XSD_INTEGER, XSD_STRING,
 };
 
 /// The `k` bound when a declaration names none (design, section 1).
@@ -115,7 +115,7 @@ impl Declaration {
                     .value()
                     .parse::<u64>()
                     .ok()
-                    .filter(|v| (1..=max).contains(v))
+                    .filter(|v| l.datatype().as_str() == XSD_INTEGER && (1..=max).contains(v))
                     .map(Some)
                     .ok_or_else(|| {
                         refuse(format!(
@@ -298,5 +298,41 @@ impl Endpoint for DeclarationEndpoint {
             )
             .output(TEXT)
             .output(TURTLE)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn numeric_declaration_properties_refuse_non_integer_literals() {
+        for (property, numeric_fields, literal) in [
+            ("dimensions", r#"vector:dimensions "4""#, r#""4""#),
+            (
+                "maxK",
+                r#"vector:dimensions 4 ; vector:maxK "5"@en"#,
+                r#""5"@en"#,
+            ),
+        ] {
+            let turtle = format!(
+                "@prefix vector: <{VOCABULARY_NAMESPACE}> . <> vector:model \"m\" ; {numeric_fields} ."
+            );
+            let max = if property == "dimensions" {
+                1 << 16
+            } else {
+                MAX_K_LIMIT
+            };
+            let expected = format!(
+                "the declaration of index `a`: `vector:{property}` must be a whole number from 1 to {max}, not {literal}"
+            );
+            assert!(
+                matches!(
+                    Declaration::parse("a", turtle.as_bytes()),
+                    Err(Error::Endpoint(why)) if why == expected
+                ),
+                "{turtle}"
+            );
+        }
     }
 }
