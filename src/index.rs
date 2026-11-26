@@ -453,6 +453,9 @@ impl MemberEndpoint {
             let len = match indexes.get_mut(n) {
                 Some(state) => {
                     state.backend.remove(p);
+                    if state.backend.is_empty() {
+                        state.digest = None;
+                    }
                     state.backend.len()
                 }
                 None => 0,

@@ -69,7 +69,8 @@ The design is [docs/design.md](docs/design.md); this README is the contract that
 
 The index records the model digest its vectors were made with. A member whose embedding carries
 another digest is refused (`Conflict`), and so is a query, each naming both digests; a rebuild
-re-embeds every member at the current digest. A declaration that changes the model, the provider,
+re-embeds every member at the current digest. An empty index holds no model digest. A declaration
+that changes the model, the provider,
 the backend or the dimensions is refused the same way until the index is rebuilt; a changed bound
 on `k` takes effect at the next member change or rebuild.
 

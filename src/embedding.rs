@@ -65,7 +65,13 @@ fn parse(answer: &Value, what: &str) -> Result<Embedded> {
         .map(|v| v.as_f64().map(|f| f as f32))
         .collect::<Option<Vec<f32>>>()
         .ok_or_else(|| bad("has a vector value that is not a number"))?;
-    if let Some(d) = answer.get("dimensions").and_then(Value::as_u64) {
+    if vector.iter().any(|v| !v.is_finite()) {
+        return Err(bad("has a vector value that is not a finite f32 number"));
+    }
+    if let Some(dimensions) = answer.get("dimensions") {
+        let d = dimensions
+            .as_u64()
+            .ok_or_else(|| bad("has a dimensions value that is not an unsigned integer"))?;
         if d != vector.len() as u64 {
             return Err(bad(&format!(
                 "says {d} dimensions and carries {} values",
@@ -194,5 +200,48 @@ impl Endpoint for EmbeddingEndpoint {
                     .optional(),
             )
             .output(JSON)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_present_dimensions_field_must_be_an_unsigned_integer() {
+        for dimensions in [json!("2"), json!(-1), json!(2.5), Value::Null] {
+            let answer = json!({
+                "digest": "sha256:test",
+                "dimensions": dimensions,
+                "vector": [1.0, 2.0],
+            });
+            assert!(
+                matches!(
+                    parse(&answer, LLM_EMBED),
+                    Err(Error::Endpoint(ref why))
+                        if why == "urn:llm:embed has a dimensions value that is not an unsigned integer"
+                ),
+                "{dimensions}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_number_outside_f32_range_is_not_a_valid_embedding_component() {
+        for component in [1e39, -1e39] {
+            let answer = json!({
+                "digest": "sha256:test",
+                "dimensions": 2,
+                "vector": [1.0, component],
+            });
+            assert!(
+                matches!(
+                    parse(&answer, LLM_EMBED),
+                    Err(Error::Endpoint(ref why))
+                        if why == "urn:llm:embed has a vector value that is not a finite f32 number"
+                ),
+                "{component}"
+            );
+        }
     }
 }

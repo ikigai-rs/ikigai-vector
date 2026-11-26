@@ -57,7 +57,9 @@ Every sentence below is pinned by its words in `tests/faces.rs` (refusals by aut
   index that is not built or not declared, and a passage that is not there, say so and say what
   to do; a refusal of authority names the scope it takes; an unknown face lists the faces there
   are. **A query's text, and a passage's text, are never quoted back in a refusal**
-  (`tests/backend.rs` and `tests/faces.rs` check it).
+  (`tests/backend.rs` and `tests/faces.rs` check it). The embedding parser refuses a
+  `dimensions` value that is not an unsigned integer and a vector value that converts to a
+  non-finite number. Its unit tests pin both refusal messages.
 
 ### Not ours to fix, still ours to report
 
